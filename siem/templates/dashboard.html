@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini SIEM Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔐 Mini SIEM Dashboard</h1>
+            <p class="subtitle">Security Information and Event Management System</p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- SCP Configuration Section -->
+        <div class="config-section">
+            <h2>SCP Log Fetching Configuration</h2>
+            <form action="/api/fetch_logs" method="POST">
+                <div class="form-group">
+                    <label for="host">Hostname/IP:</label>
+                    <input type="text" id="host" name="host" class="form-control" value="{{ config.get('host', '') }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="port">Port (default 22):</label>
+                    <input type="number" id="port" name="port" class="form-control" value="{{ config.get('port', 22) }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" class="form-control" value="{{ config.get('username', '') }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="remote_path">Remote Log Path (e.g. /var/log/auth.log):</label>
+                    <input type="text" id="remote_path" name="remote_path" class="form-control" value="{{ config.get('remote_path', '/var/log/auth.log') }}" required>
+                </div>
+                <button type="submit" class="btn">Fetch Logs & Reload Dashboard</button>
+            </form>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-label">Total Alerts</div>
+                <div class="stat-value">{{ alert_count }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                <div class="stat-status {% if alert_count > 0 %}alert{% else %}safe{% endif %}">
+                    {% if alert_count > 0 %}⚠️ THREATS DETECTED{% else %}✅ SYSTEM SECURE{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Table Section -->
+        <div class="table-section">
+            <h2>Security Alerts</h2>
+            
+            {% if alerts %}
+                <div class="table-wrapper">
+                    <table class="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Alert Type</th>
+                                <th>IP Address</th>
+                                <th>Severity</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                                <tr class="alert-row">
+                                    <td class="alert-type">
+                                        {% if alert.type == 'Brute Force' %}
+                                            🔴 Brute Force
+                                        {% elif alert.type == 'DDoS' %}
+                                            🔴 DDoS
+                                        {% else %}
+                                            {{ alert.type }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="alert-ip">{{ alert.ip }}</td>
+                                    <td class="alert-severity">
+                                        <span class="severity-badge severity-{{ alert.severity.lower() }}">
+                                            {{ alert.severity }}
+                                        </span>
+                                    </td>
+                                    <td class="alert-timestamp">{{ alert.timestamp }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="no-alerts">
+                    <p>✅ No security threats detected. System is operating normally.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Mini SIEM v1.0 | Last Updated: <span id="update-time">Just now</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Update the "Last Updated" time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('update-time').textContent = timeString;
+        }
+
+        // Update on page load
+        updateTime();
+
+        // Optional: Auto-refresh dashboard every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
